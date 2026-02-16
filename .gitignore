@@ -1,5 +1,7 @@
 ### Templete From: https://github.com/github/gitignore/blob/main/Python.gitignore
 
+students.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
