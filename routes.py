@@ -4,37 +4,65 @@ from database import get_connection
 
 router = APIRouter()
 
-@router.get("???")  # TODO: Replace ??? with correct endpoint path
+@router.get("/students")
 def get_all_students():
-    # TODO: Implement this
-    pass
+    conn = get_connection()
+    cursor = conn.cursor()
+    students = cursor.execute("SELECT * FROM students").fetchall()
+    conn.close()
+    return {"students": students, "count": len(students)}
 
-@router.get("???")  # TODO: Replace ??? with correct endpoint path
+
+@router.get("???") 
 def get_students_by_major(major: str):
-    # TODO: Implement this
+    conn = get_connection()
+    cursor = conn.cursor()
     pass
 
-@router.get("???")  # TODO: Replace ??? with correct endpoint path
+
+@router.get("???") 
 def get_students_by_gpa(min_gpa: float):
-    # TODO: Implement this
+    conn = get_connection()
+    cursor = conn.cursor()
     pass
 
-@router.get("???")  # TODO: Replace ??? with correct endpoint path
+
+@router.get("???") 
 def get_student(student_id: int):
-    # TODO: Implement this
+    conn = get_connection()
+    cursor = conn.cursor()
     pass
 
-@router.post("???", status_code=201)  # TODO: Replace ??? with correct endpoint path
+
+@router.post("/students", status_code=201)
 def create_student(student: Student):
-    # TODO: Implement this
-    pass
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO students VALUES (?, ?, ?, ?, ?, ?)", 
+        (student.id, student.name, student.email, student.major, student.gpa, student.enrollment_year)
+    )
+    conn.commit()
+    conn.close()
 
-@router.put("???")  # TODO: Replace ??? with correct endpoint path
+@router.put("???") 
 def update_student(student_id: int, student: Student):
-    # TODO: Implement this
+    conn = get_connection()
+    cursor = conn.cursor()
     pass
 
-@router.delete("???")  # TODO: Replace ??? with correct endpoint path
+
+@router.delete("/students/{student_id}") 
 def delete_student(student_id: int):
-    # TODO: Implement this
-    pass
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("DELETE FROM students WHERE id = ?", (student_id,))
+        conn.commit()
+        return {"message": "Student deleted successfully"}
+    
+    except:
+        raise HTTPException(status_code=404, detail=f"Student with ID {student_id} not found")
+    
+    finally:
+        conn.close()
