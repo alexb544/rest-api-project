@@ -4,108 +4,110 @@ from database import get_connection
 
 router = APIRouter()
 
-@router.get("/students")
+@router.get("/students", status_code=200)
 def get_all_students():
-    conn = get_connection()
-    cursor = conn.cursor()
-    results = cursor.execute("SELECT * FROM students").fetchall()
-    conn.close()
-    return {"students": results, "count": len(results)}
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        results = cursor.execute("SELECT * FROM students").fetchall()
+        return {"students": results, "count": len(results)}
 
 
 @router.get("/students/by-major", status_code=200) 
 def get_students_by_major(major: str):
-    conn = get_connection()
-    cursor = conn.cursor()
-    results = cursor.execute("""
-        SELECT *
-        FROM students
-        WHERE major = ?""", (major,)
-    ).fetchall()
+    with get_connection() as conn:
+        cursor = conn.cursor()
 
-    return {"students": results, "count": len(results), "major": major}
+        results = cursor.execute("""
+            SELECT * FROM students
+            WHERE major = ?""", (major,)).fetchall()
+
+        return {"students": results, "count": len(results), "major": major}
 
 
 @router.get("/students/by-gpa", status_code=200) 
 def get_students_by_gpa(min_gpa: float):
-    conn = get_connection()
-    cursor = conn.cursor()
+    if min_gpa < 0.0 or min_gpa > 4.0:
+        raise HTTPException(status_code=400, detail=f"GPA must be between 0.0 and 4.0")
 
-    results = cursor.execute("""
-        SELECT *
-        FROM students
-        WHERE gpa > ?""", (min_gpa,)
-    ).fetchall()
+    with get_connection() as conn:
+        cursor = conn.cursor()
 
-    conn.close()
-    return {"students": results, "count": len(results), "min_gpa": min_gpa}
+        results = cursor.execute("""
+            SELECT * FROM students
+            WHERE gpa > ?""", (min_gpa,)).fetchall()
+
+        return {"students": results, "count": len(results), "min_gpa": min_gpa}
 
 
 @router.get("/students/{student_id}", status_code=200) 
 def get_student(student_id: int):
-    conn = get_connection()
-    cursor = conn.cursor()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        result = cursor.execute("""
+            SELECT * FROM students 
+            WHERE id = ?""", (student_id,)).fetchone()
 
-    result = cursor.execute("""
-        SELECT * 
-        FROM students 
-        WHERE id = ?""", (student_id,)
-    ).fetchone()   
-    conn.close()
-
-    if result is None:
-        raise HTTPException(status_code=404, detail=f"Student with ID {student_id} not found")
-    else:
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Student with ID {student_id} not found")
+        
         return result
+
 
 @router.post("/students", status_code=201)
 def create_student(student: Student):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-    INSERT INTO students
-        (id, name, email, major, gpa, enrollment_year) 
-    VALUES 
-        (?, ?, ?, ?, ?, ?)""", 
-        (student.id, student.name, student.email, student.major, student.gpa, student.enrollment_year)
-    )   
-    conn.commit() 
-    conn.close()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        student_info = [student.name, student.email, student.major, student.gpa, student.enrollment_year]
+
+        try:
+            cursor.execute("""
+                INSERT INTO students (name, email, major, gpa, enrollment_year)
+                VALUES (?, ?, ?, ?, ?)
+                """, student_info
+            )
+            id = cursor.lastrowid
+            result = cursor.execute("SELECT * FROM students WHERE id = ?", (id,)).fetchone()
+
+            return result
+
+        except:
+            raise HTTPException(status_code=400, detail="Invalid email format")
 
 
 @router.put("/students/{student_id}", status_code=200) 
 def update_student(student_id: int, student: Student):
-    conn = get_connection()
-    cursor = conn.cursor()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        new_student_info = [student.id, student.name, student.email, student.major, student.gpa, student.enrollment_year, student_id]
 
-    result = cursor.execute("""
-        UPDATE students 
-        SET student = ?
-        WHERE id = ?""", (student, student_id,)
-    )
-    conn.commit()
-    
+        cursor.execute("""
+            UPDATE students 
+            SET (id, name, email, major, gpa, enrollment_year)
+            = (?, ?, ?, ?, ?, ?)
+            WHERE id = ? 
+            """, (new_student_info)
+        )
 
-    conn.close()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail=f"Student with ID {student_id} not found")
+        
+        return cursor.execute("""
+            SELECT *
+            FROM students
+            WHERE id = ?
+            """, (student.id,)).fetchone()
 
-    if result is None:
-        raise HTTPException(status_code=404, detail=f"Student with ID {student_id} not found")
-    else:
-        return result
 
-
-@router.delete("/students/{student_id}") 
+@router.delete("/students/{student_id}", status_code=200) 
 def delete_student(student_id: int):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute("DELETE FROM students WHERE id = ?", (student_id,))
-        conn.commit()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            DELETE FROM students 
+            WHERE id = ?
+            """, (student_id,)
+        )
+        if cursor.rowcount <= 0:
+            raise HTTPException(status_code=404, detail=f"Student with ID {student_id} not found")
+        
         return {"message": "Student deleted successfully"}
-    
-    except:
-        raise HTTPException(status_code=404, detail=f"Student with ID {student_id} not found")
-    
-    finally:
-        conn.close()
