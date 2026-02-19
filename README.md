@@ -1,46 +1,172 @@
 # Student Records API
 
-## Project Description
-This project uses a REST API for managing system records for university students. The API provides 7 endpoints (5 CRUD + 2 filtering) that allows users to create, read, update, and delete student records, as well as filter by major or a GPA threshold. Each endpoint provides proper HTTP status codes and have input validation with explicit checks that raise `HTTPException`s. Uses an SQLite database for data storage and persists across server restarts.
+## Overview
+This project uses a REST API for managing system records for university students. 
+- Provides 7 endpoints (5 CRUD + 2 filtering) allowing users to create, read, update, and delete student records, as well as filter by major or a given GPA threshold.
+- Endpoints provide proper HTTP status codes and have input validation with explicit checks that raise `HTTPException`s.
+- Implements an SQLite database for data storage that persists across server restarts.
 
-## Installation Instructions
-1. Clone this repository to your computer:
-```bash
+## Installation
+
+### Prerequisites
+1. Clone this repository:
+```sh
 git clone "https://github.com/alexb544/rest-api-project.git"
 ```
-
-2. Create and activate a new virtual environment for the project:
-```bash
+2. Create a virtual environment in the root directory, then activate it:
+```sh
 python -m venv .venv
 source .venv/Scripts/activate 
 ```
-
-3. Install any project dependencies from `requirements.txt`:
-```bash
+3. Install dependencies from `requirements.txt`:
+```sh
 pip install -r requirements.txt
 ```
-You can verify installation via: `pip list | grep fastapi` & `uvicorn --version`
+- You can verify installation via: `pip list | grep fastapi` & `uvicorn --version`
 
- 4. Run the server:
-```bash
+### Starting the server
+4. Run:
+```sh
 uvicorn main:app --reload
 ```
-Click on the link provided after the server starts ``, this opens a new webpage in your browser. 
-- Add `/docs` to the end of the URL to go to FastAPI's user friendly page. 
+5. `CTRL + Click` on the link provided in your terminal `http://localhost:8000`, this opens a new webpage in your browser. 
+- You can add `/docs` to the end of the URL to use FastAPI's user-friendly UI page. 
 
 ## API Endpoints
-List all endpoints with:
-- HTTP method
-- URL path
-- Description
-- Status codes
 
-## Testing Instructions
-- How to test the API (FastAPI's `/docs` interface recommended)
-- Note about database initialization
+### Get All Students
+- **HTTP Method:** `GET`
+- **URL Path:** `/students`
+- **Description:** Retrives all student records. 
+- **Status Codes:**
+    - `200` - Successful Response
+---
+### Get Student
+- **HTTP Method:** `GET`
+- **URL Path:** `/students/{student_id}`
+- **Description:** Retrives a specific student by their ID. 
+- **Status Codes:**
+    - `200` - Successful Response
+    - `404` - Not Found
+    - `422` - Validation Error
+---
+### Get Student By GPA
+- **HTTP Method:** `GET`
+- **URL Path**: `/students/by-gpa`
+- **Description:** Retrive students with a GPA above a specified threshold.
+    - Must be between $0.0$ and $4.0$. 
+- **Status Codes:**
+    - `200` - Successful Response
+    - `400` - Bad Request
+    - `422` - Validation Error
+---
+### Get Students By Major
+- **HTTP Method:** `GET`
+- **URL Path:** `/students/by-major`
+- **Description:** Retrives students filtered by their major. 
+- **Status Codes:**
+    - `200` - Successful Response
+    - `422` - Validation Error
+---
+### Create Student
+- **HTTP Method:** `POST`
+- **URL Path:** `/students`
+- **Description:** Creates a new student record. 
+- **Status Codes:**
+    - `201` - Successful Response
+    - `422` - Validation Error
+ ---
+### Update Student
+- **HTTP Method:** `PUT`
+- **URL Path:** `/students/{student_id}`
+- **Description: **
+- **Status Codes:**
+    - `201` - Successful Response
+    - `422` - Validation Error
+---
+ ### Delete Student
+- **HTTP Method:** `DELETE`
+- **URL Path:** `/students/{student_id}`
+- **Description:** Deletes a student record. 
+- **Status Codes:**
+    - `200` - Successful Response
+    - `404` - Not Found
+    - `422` - Validation Error
+
+## Testing
+To test API calls, the easiest way is with FastAPI's `/docs` interface.
+
+Once on the `/docs` page, click on any of the listed endpoints under the `default` section to expand it. Click the `Try it out` button at the top to test it, then enter in the required parameters (if any) and click `Execute`. Your API call will be executed and any information about it will be displayed below, as well as in the terminal. 
+
+### Note about database initialization
+> The database is automatically initialized in `main.py`, which creates a `.db` file that stores any data you modify while testing. When you call one of the endpoints, they'll automatically connect to the this database file and commit any changes made.
 
 ## Example Usage
-Three example requests demonstrating different operations
-1. 
-2. 
-3. 
+
+### `GET` - Student Record
+**Request URL:** `http://127.0.0.1:8000/students/6`
+
+**Response:** `200 OK`
+```sh
+{
+  "id": 6,
+  "name": "Carol White",
+  "email": "carol.white@university.edu",
+  "major": "Physics",
+  "gpa": 3.9,
+  "enrollment_year": 2023
+}
+```
+---
+### `POST` - Create a Student Record
+**Request URL:** `http://127.0.0.1:8000/students/5`
+
+**Request Body:**
+```sh
+{
+  "name": "Shelby Mendez",
+  "email": "smendez@example.edu",
+  "major": "Biology",
+  "gpa": 3.55,
+  "enrollment_year": 2026
+}
+```
+
+**Response:** `201 Created`
+```sh
+{
+  "id": 5,
+  "name": "Shelby Mendez",
+  "email": "smendez@example.edu",
+  "major": "Biology",
+  "gpa": 3.55,
+  "enrollment_year": 2026
+}
+```
+---
+### `GET` - By Major
+**Request URL:** `http://127.0.0.1:8000/students/by-major?major=Biology`
+
+**Request Body:** `GET /students/by-major?major=Biology`
+
+**Response:** `200 OK`
+```sh
+{
+  "students": [
+    {
+      "id": 5,
+      "name": "Shelby Mendez",
+      "email": "smendez@example.edu",
+      "major": "Biology",
+      "gpa": 3.55,
+      "enrollment_year": 2026
+    }
+  ],
+  "count": 1,
+  "major": "Biology"
+}
+```
+
+## Sources
+- GeeksForGeeks (section 5): https://www.geeksforgeeks.org/python/with-statement-in-python/
+    - `with` keyword - used for connecting/commiting/closing connection to the database inside endpoint functions.  
